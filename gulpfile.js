@@ -14,7 +14,12 @@ const htmlReplace = require('gulp-html-replace');
 const htmlMin = require('gulp-htmlmin');
 const del = require('del');
 
-const paths = {}
+const paths = {
+    sassInput: 'src/scss/**/*.scss',
+    sassOutput: 'src/css',
+    cssInput: 'src/css/**/*.css',
+    jsInput: 'src/app/**/*.js'
+}
 
 const server = (done) => {
     browserSync.init({
@@ -31,23 +36,7 @@ const server = (done) => {
     done;
 }
 
-const watch = () => {
-    gulp.watch('src/*.html').on('change', browserSync.reload);
-    gulp.watch('src/scss/**/*.scss', gulp.series('sassTask'));
-    gulp.watch('src/app/**/*.js', gulp.series('babelTask'));
-}
 
-const sassTask = (done) => {
-    return gulp.src('src/scss/**/*.scss')
-    .pipe(sourceMap.init())
-    .pipe(sass().on('error', sass.logError))
-    .pipe(postcss([ autoprefixer() ]))
-    .pipe(sourceMap.write())
-    .pipe(gulp.dest('src/css'))
-    .pipe(browserSync.stream());
-
-    done;
-}
 
 const css = function(){
     return gulp.src('src/css/**/*.css')
@@ -101,11 +90,28 @@ const clean = () => {
     return del(['dist']);
 }
 
+const sassTask = (done) => {
+    return gulp.src('src/scss/**/*.scss')
+    .pipe(sourceMap.init())
+    .pipe(sass().on('error', sass.logError))
+    .pipe(postcss([ autoprefixer() ]))
+    .pipe(sourceMap.write())
+    .pipe(gulp.dest('src/css'))
+    .pipe(browserSync.stream());
+
+    done;
+}
+
+const watch = () => {
+    gulp.watch('src/*.html').on('change', browserSync.reload);
+    gulp.watch('src/scss/**/*.scss', gulp.series(sassTask));
+    gulp.watch('src/app/**/*.js', gulp.series(babelTask));
+}
+
 const build = (done) => {
     return gulp.series('clean', 'css', 'js', 'html')(done);
 }
 
-exports.default = gulp.series(server, gulp.parallel(sass, babelTask), watch);
 exports.css = css;
 exports.sass = sassTask;
 exports.babel = babelTask;
@@ -114,3 +120,5 @@ exports.html = html;
 exports.clean = clean;
 exports.build = build;
 exports.server = server;
+exports.watch = watch;
+exports.default = gulp.series(sassTask, babelTask, gulp.parallel(watch, server));
